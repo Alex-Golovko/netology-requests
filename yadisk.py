@@ -1,21 +1,37 @@
 import requests
-from ya_disk import YandexDisk
+from pprint import pprint
 
-TOKEN = 'AQAAAAAWwSZPAADLW55Sy2uaJEbAIEL1Ms0UfJA'
+
+
 
 class YandexDisk:
     def __init__(self, token):
-        self.file_path = file_path
+        self.token = token
 
-    def upload(self):
-        """Метод загруджает файлы по списку file_list на яндекс диск"""
-        # Тут ваша логика
-        ya = YandexDisk(token=TOKEN)
-        ya.upload_file_to_disk('Python', 'test.txt')
-        return 'Вернуть ответ об успешной загрузке'
+    def get_headers(self):
+        return {
+            'Content-Type': 'application/json',
+            'Authorization': 'OAuth {}'.format(self.token)
+        }
 
+    def get_file_list(self):
+        file_url = 'https://cloud-api.yandex.net/v1/disk/resources/files'
+        headers = self.get_headers()
+        response = requests.get(file_url, headers=headers)
+        return response.json()
 
-if __name__ == '__main__':
-    uploader = YaUploader('/home/alexgolovko/PycharmProjects/netology-requests/test.txt')
-    result = uploader.upload()
+    def _get_upload_link(self, disk_file_path):
+        upload_url = 'https://cloud-api.yandex.net/v1/disk/resources/upload'
+        headers = self.get_headers()
+        param = {'path': disk_file_path, 'overwrite': 'true'}
+        response = requests.get(upload_url, headers=headers, param=param)
+        pprint(response.json())
+        return response.json()
+
+    def upload_file_to_disk(self, disk_file_path, filename):
+        href = self._get_upload_link(disk_file_path=disk_file_path).get('href', '')
+        response = requests.put(href, data=open(filename, 'rb'))
+        response.raise_for_status()
+        if response.status_code == 201:
+            print('Success')
 
